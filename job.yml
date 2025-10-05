@@ -1,0 +1,18 @@
+apiVersion: batch/v1          # API group + version for Job resources
+kind: Job                    # Resource kind: a one-time task controller
+metadata:
+  name: demo-job             # Job name (DNS-1123: lowercase, digits, '-')
+  namespace: nginx           # Namespace where Job will be created
+spec:
+  completions: 1             # Number of successful pod completions required
+  parallelism: 1             # Max pods to run in parallel
+  template:                  # Pod template (same structure as a Pod spec)
+    metadata:
+      labels:
+        app: batch-task      # Labels applied to pods created by this Job
+    spec:
+      containers:
+      - name: demo-job
+        image: busybox:latest
+        command: ["sh", "-c", "echo Hello Kubernetes! && sleep 10"]
+      restartPolicy: Never   # Allowed for Jobs: Never or OnFailure

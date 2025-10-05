@@ -1,0 +1,45 @@
+kind: CronJob #Declares that this resource is a CronJob (scheduled job).
+apiVersion: batch/v1 # Specifies the API version of the CronJob resource. Kubernetes supports CronJobs under batch/v1 (older versions used batch/v1beta1, which is deprecated).
+metadata: # Metadata about the CronJob itself
+  name: minute-backup # The name identifier for this CronJob.
+  namespace: nginx # The namespace in which this CronJob lives. The scheduler, Jobs, and pods will be created in this namespace (unless overridden).
+spec: # The spec (desired state) for the CronJob.
+  schedule: "* * * * *"  # A cron expression defining when to run the job. "* * * * *" means every minute.
+  jobTemplate:          #A template for the Job that the CronJob will create at each scheduled time.
+    spec:  
+      template: #The specification for that Job resource.
+        metadata: # Metadata (labels etc) attached to the Pod(s) created by the Job.
+          name: minute-backup
+          labels: # Key-value labels for the pods (useful for selection, identification).
+            app: minute-backup
+        spec:  # The PodSpec: how each pod should be created.
+          containers: # The list of containers to run inside the pod. You can have one or more.
+          - name: backup-container # The name of this container (within the pod).
+            image: busybox:latest # The container image to use (busybox here, a small Linux shell utility image).
+            command: # Overrides the default command / entrypoint for the container; here you’re giving a shell invocation.
+              - "sh"
+              - "-c"
+              - >
+                echo "Backup started";
+                mkdir -p /backups &&
+                mkdir -p /demo-data &&
+                cp -r /demo-data /backups &&
+                echo "Backup completed";
+            volumeMounts: # Mount points for volumes inside the container (to map storage into the container filesystem).
+              - name: data-volume # Mounts the volume named data-volume inside the container at path /demo-data.
+                mountPath: /demo-data
+              - name: backup-volume # Mounts the volume named backup-volume at /backups.
+                mountPath: /backups
+          restartPolicy: OnFailure # Tells the Pod what to do if the container fails: only restart if failure. (In Jobs, restartPolicy must be OnFailure or Never.)
+          volumes: # Defines the volumes available to mount in the pod.
+            - name: data-volume # A volume named data-volume, backed by a hostPath (i.e. a directory on the host node) at path: /demo-data. The type: DirectoryOrCreate means “create it if it doesn’t exist.”
+              hostPath:
+                path: /demo-data
+                type: DirectoryOrCreate
+
+
+
+            - name: backup-volume # Another hostPath volume for backups, mapping the host’s /backups directory.
+              hostPath:
+                path: /backups
+                type: DirectoryOrCreate
